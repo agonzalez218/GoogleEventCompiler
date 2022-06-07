@@ -3,6 +3,8 @@ import os.path
 import tkinter
 from tkinter import *
 from tkinter import ttk
+from tkinter import messagebox
+from datetime import timedelta, date
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -34,10 +36,27 @@ def sortFunc(my_list):
     return my_list
 
 
-def printList(my_list):
+def displayList(calendarsString, my_list):
+    stringEvents = ""
+    stringDates = ""
+    newWindow = Toplevel(root)
+    newWindow.title("Results")
+    newWindow.geometry("500x300")
+    varDates = StringVar()
+    varEvents = StringVar()
+    varCalendars = StringVar(value=calendarsString)
+    labelCalendars = Label(newWindow, textvariable=varCalendars, relief=RAISED)
+    labelDate = Label(newWindow, textvariable=varDates, relief=RAISED)
+    labelEvent = Label(newWindow, textvariable=varEvents, relief=RAISED)
     for index, value in enumerate(my_list):
         if index % 2 == 0:
-            print(my_list[index], my_list[index + 1])
+            stringDates += (my_list[index]) + "\n"
+            stringEvents += (my_list[index + 1]) + "\n"
+    varEvents.set(stringEvents)
+    varDates.set(stringDates)
+    labelCalendars.grid(column=0, columnspan=2, row=0)
+    labelDate.grid(column=0, row=1)
+    labelEvent.grid(column=1, row=1)
 
 
 def accessAPI():
@@ -79,14 +98,19 @@ def accessEvents(creds, varType):
                 calendars.append(calendar_list_entry['summary'])
                 counter += 1
                 # Get all events from calendar until a specified timeMax date
-                if varType == "num":
+                if varType == "numEvents":
                     events_result = service.events().list(calendarId=calendar, timeMin=now,
-                                                          maxResults=int(num.get().replace(" ", "")), singleEvents=True,
+                                                          maxResults=int(numEvents.get().replace(" ", "")), singleEvents=True,
+                                                          orderBy='startTime').execute()
+                elif varType == "numDays":
+                    # 2022-06-06T16:15:00-05:00
+                    events_result = service.events().list(calendarId=calendar, timeMin=now,
+                                                          timeMax=str(date.today()+datetime.timedelta(days=int(numDays.get())))+"T00:00:00-05:00", singleEvents=True,
                                                           orderBy='startTime').execute()
                 elif varType == "endDate":
                     # 2022-06-06T16:15:00-05:00
                     events_result = service.events().list(calendarId=calendar, timeMin=now,
-                                                          timeMax=endDate.get()+"T16:15:00-05:00", singleEvents=True,
+                                                          timeMax=endDate.get()+"T00:00:00-05:00", singleEvents=True,
                                                           orderBy='startTime').execute()
                 events += events_result.get('items', [])
             page_token = calendar_list.get('nextPageToken')
@@ -106,32 +130,44 @@ def accessEvents(creds, varType):
             string += calendars[i]
             if i != counter - 1:
                 string += ", "
-        print(string)
-        printList(eventList)
+        displayList(string, eventList)
 
     except HttpError as error:
         print('An error occurred: %s' % error)
 
 
 def startProcess():
-    creds = accessAPI()
-    accessEvents(creds, selected.get())
+    if selected.get() == " ":
+        tkinter.messagebox.showerror(title="Event Search Error", message="No search type selected")
+    elif selected.get() == "endDate" and endDate.get() == "":
+        tkinter.messagebox.showerror(title="Event Search Error", message="No input provided for type selected")
+    elif selected.get() == "numDays" and numDays.get() == "":
+        tkinter.messagebox.showerror(title="Event Search Error", message="No input provided for type selected")
+    elif selected.get() == "numEvents" and numEvents.get() == "":
+        tkinter.messagebox.showerror(title="Event Search Error", message="No input provided for type selected")
+    else:
+        creds = accessAPI()
+        accessEvents(creds, selected.get())
 
 
 root = Tk(className=" Event and Reminder App")
-root.geometry("400x150")
+root.geometry("450x150")
 frm = ttk.Frame(root, padding=10)
 frm.grid()
-selected = tkinter.StringVar(value=' ')
-endDate = tkinter.StringVar()
-num = tkinter.StringVar()
+selected = tkinter.StringVar(value=" ")
+endDate = tkinter.StringVar(value="")
+numDays = tkinter.StringVar(value="")
+numEvents = tkinter.StringVar(value="")
 
-tkinter.Radiobutton(frm, text='Search for events until End Date', value='endDate', variable=selected).grid(column=0,
+tkinter.Radiobutton(frm, text='Search for events until End Date (yyyy-mm-dd)', value='endDate', variable=selected).grid(column=0,
                                                                                                                row=0)
-tkinter.Radiobutton(frm, text='Search for # of upcoming events', value='num', variable=selected).grid(column=0,
+tkinter.Radiobutton(frm, text='Search for number of upcoming events', value='numEvents', variable=selected).grid(column=0,
                                                                                                           row=1)
+tkinter.Radiobutton(frm, text='Search for events in number of upcoming days', value='numDays', variable=selected).grid(column=0,
+                                                                                                          row=2)
 ttk.Entry(frm, textvariable=endDate).grid(column=1, row=0)
-ttk.Entry(frm, textvariable=num).grid(column=1, row=1)
-ttk.Button(frm, text="Start Process", command=lambda: startProcess()).grid(column=0, row=2)
-ttk.Button(frm, text="Exit", command=lambda: root.quit).grid(column=1, row=2)
+ttk.Entry(frm, textvariable=numEvents).grid(column=1, row=1)
+ttk.Entry(frm, textvariable=numDays).grid(column=1, row=2)
+ttk.Button(frm, text="Search", command=lambda: startProcess()).grid(column=0, row=3)
+ttk.Button(frm, text="Exit", command=lambda: root.destroy()).grid(column=1, row=3)
 root.mainloop()
