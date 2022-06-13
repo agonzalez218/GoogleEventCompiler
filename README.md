@@ -1,4 +1,4 @@
-# GoogleEventCompiler
+# GoogleEventCompiler | Created: June 2022
 This application utilizes the Python programming language, Google API, and Tkinter library for the interface. I created this application to gain experience in Python as well as implementing APIs in an application. 
 
 _This Application is still a work in progress, and images below are prototypes!_
