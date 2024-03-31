@@ -15,6 +15,8 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
+def deleteOAuthFile():
+    os.remove("token.json")
 
 def sortFunc(my_list):
     new_list = []
@@ -169,5 +171,6 @@ ttk.Entry(frm, textvariable=endDate).grid(column=1, row=0)
 ttk.Entry(frm, textvariable=numEvents).grid(column=1, row=1)
 ttk.Entry(frm, textvariable=numDays).grid(column=1, row=2)
 ttk.Button(frm, text="Search", command=lambda: startProcess()).grid(column=0, row=3)
+ttk.Button(frm, text="Retry OAuth", command=lambda: deleteOAuthFile()).grid(column=1, row=4)
 ttk.Button(frm, text="Exit", command=lambda: root.destroy()).grid(column=1, row=3)
 root.mainloop()
